@@ -1,0 +1,27 @@
+# Python environments and generated files
+.venv/
+.build-env/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+# Packaging outputs
+build/
+dist/
+*.spec
+*.zip
+# Local documents and generated exports
+*.pdf
+split_*/
+merged_*/
+reordered_*/
+# Local secrets and editor/OS files
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
