@@ -10,9 +10,11 @@ if not errorlevel 1 (
 if errorlevel 1 goto failed
 ".build-env\Scripts\python.exe" -m pip install -r requirements.txt pyinstaller
 if errorlevel 1 goto failed
-".build-env\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed --onedir --name PDFWorkspace --collect-all tkinterdnd2 app.py
+".build-env\Scripts\python.exe" -m PyInstaller --noconfirm --clean --windowed --onedir --name PDFWorkspace --collect-all tkinterdnd2 --collect-all pypdfium2 --collect-all pypdfium2_raw --collect-all docx --collect-all reportlab app.py
 if errorlevel 1 goto failed
 echo.
+".build-env\Scripts\python.exe" collect_licenses.py "dist\PDFWorkspace\THIRD_PARTY_LICENSES"
+if errorlevel 1 goto failed
 echo Build finished: dist\PDFWorkspace\PDFWorkspace.exe
 echo Keep the ENTIRE dist\PDFWorkspace folder together.
 pause

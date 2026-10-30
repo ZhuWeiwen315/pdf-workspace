@@ -25,8 +25,34 @@ class App:
         self.rows = []
         self.merge_docs = []
         self.reorder_doc = None
+        self.word_doc = None
+        self.word_output = tk.StringVar()
+        self.word_name = tk.StringVar(value="转换结果.docx")
+        self.word_info = tk.StringVar(value="尚未选择文件")
+        self.word_notice = tk.StringVar(value="转换结果将在这里显示。")
         self.mode = 'split'
         self.messages = queue.Queue()
+        self.tool_buttons = []
+        self.image_paths = []
+        self.tools = {}
+        specs = {
+            'delete': ('删除页面','移除选定页，保留其余页面。','删除页面.pdf','删除页面不是安全涂黑，不能用于隐去页面内的敏感文字。'),
+            'rotate': ('旋转页面','按顺时针方向旋转选定页面。','旋转页面.pdf','角度是在原有旋转角度基础上增加。'),
+            'text': ('提取文字','把 PDF 的文字层导出为 UTF-8 文本。','提取文字.txt','不提供 OCR；扫描页无法提取文字，复杂阅读顺序可能需要整理。TXT 不受原密码保护。'),
+            'encrypt': ('设置密码','为另存的 PDF 设置打开密码。','加密文件.pdf','使用 AES-256。请妥善记住密码；遗忘后本工具不能恢复。'),
+            'decrypt': ('移除密码','用已知密码打开后，另存为无密码 PDF。','移除密码.pdf','只支持你已知密码的文件，不提供破解。输出文件将不再受密码保护。'),
+            'images_pdf': ('图片转 PDF','把多张图片按顺序合成为一份 PDF。','图片合成.pdf','支持 PNG/JPEG/BMP/WebP 单帧图片，透明区域变白，可能重编码，并非无损归档。'),
+            'pdf_images': ('PDF 转图片','把选定页面导出为 PNG 或 JPEG。','','这是页面渲染，不是提取原始图片；页数较多会占用较多磁盘空间，图片不受原密码保护。'),
+            'compress': ('压缩 PDF','压缩内容流，不降低图片分辨率。','压缩文件.pdf','不保证文件变小；已压缩的文件可能保持原大小或变大。完成后会显示前后大小。'),
+            'watermark': ('添加水印','给选定页面加上半透明文字水印。','水印文件.pdf','水印不是安全涂黑，可被 PDF 编辑器移除；也可能覆盖页面内容。'),
+            'numbers': ('添加页码','在选定页面底部中央添加页码。','页码文件.pdf','按原始物理页序编号：起始值为 1 时，选第 3 页会标为 3。可能覆盖原有页脚。')
+        }
+        for key,(title,description,filename,note) in specs.items():
+            self.tools[key] = dict(title=title,description=description,note=note,doc=None,
+                info=tk.StringVar(value='尚未选择文件'),output=tk.StringVar(),name=tk.StringVar(value=filename),
+                pages=tk.StringVar(value='1'),angle=tk.StringVar(value='90'),dpi=tk.StringVar(value='150'),
+                format=tk.StringVar(value='PNG'),text=tk.StringVar(value='仅供参考'),start=tk.StringVar(value='1'),
+                password=tk.StringVar(),confirm=tk.StringVar())
         self.output = tk.StringVar()
         self.merge_output = tk.StringVar()
         self.merge_name = tk.StringVar(value='合并文档.pdf')
@@ -42,7 +68,7 @@ class App:
         self.info = tk.StringVar(value='尚未选择文件')
         self.merge_info = tk.StringVar(value='0 个文件 · 0 页')
         self.status = tk.StringVar(value='就绪 · 所有文件在本机处理')
-        root.title('PDF 工作台 1.2')
+        root.title('PDF 工作台 1.3')
         root.geometry('1100x790')
         root.minsize(990, 730)
         root.configure(bg=BG)
@@ -69,25 +95,48 @@ class App:
         sidebar.pack(side='left', fill='y'); sidebar.pack_propagate(False)
         tk.Label(sidebar, text='PDF 工作台', bg=SIDE, fg=INK, font=('Microsoft YaHei UI',15,'bold')).pack(anchor='w', padx=22, pady=(28,4))
         tk.Label(sidebar, text='简单处理每一页', bg=SIDE, fg=MUTED, font=('Microsoft YaHei UI',9)).pack(anchor='w', padx=22)
-        tk.Label(sidebar, text='工具', bg=SIDE, fg='#8c8d94', font=('Microsoft YaHei UI',9)).pack(anchor='w', padx=22, pady=(36,10))
+        nav_host=tk.Frame(sidebar,bg=SIDE);nav_host.pack(fill='both',expand=True,pady=(20,0))
+        nav_canvas=tk.Canvas(nav_host,bg=SIDE,highlightthickness=0,width=188,height=200)
+        nav_bar=ttk.Scrollbar(nav_host,orient='vertical',command=nav_canvas.yview)
+        nav_canvas.configure(yscrollcommand=nav_bar.set)
+        nav_bar.pack(side='right',fill='y');nav_canvas.pack(side='left',fill='both',expand=True)
+        nav_frame=tk.Frame(nav_canvas,bg=SIDE)
+        nav_window=nav_canvas.create_window((0,0),window=nav_frame,anchor='nw')
+        nav_frame.bind('<Configure>',lambda e:nav_canvas.configure(scrollregion=nav_canvas.bbox('all')))
+        nav_canvas.bind('<Configure>',lambda e:nav_canvas.itemconfigure(nav_window,width=e.width))
         self.nav = {}
-        for key, title in [('split','PDF 分离'),('merge','PDF 合并'),('reorder','调整顺序')]:
-            button=tk.Button(sidebar, text='  '+title, anchor='w', relief='flat', bd=0, padx=12, pady=13,
-                             cursor='hand2', bg=SIDE, fg=INK, activebackground='#e9e9ed', command=lambda k=key:self.show_page(k))
-            button.pack(fill='x', padx=12, pady=3); self.nav[key]=button
+        groups=[('文档整理',[('split','PDF 分离'),('merge','PDF 合并'),('reorder','调整顺序'),('delete','删除页面'),('rotate','旋转页面')]),
+                ('格式转换',[('word','PDF 转 Word'),('text','提取文字'),('pdf_images','PDF 转图片'),('images_pdf','图片转 PDF')]),
+                ('保护与修饰',[('encrypt','设置密码'),('decrypt','移除密码'),('compress','压缩 PDF'),('watermark','添加水印'),('numbers','添加页码')])]
+        for group,items in groups:
+            tk.Label(nav_frame,text=group,bg=SIDE,fg='#8c8d94',font=('Microsoft YaHei UI',9)).pack(anchor='w',padx=22,pady=(13,6))
+            for key,title in items:
+                button=tk.Button(nav_frame,text='  '+title,anchor='w',relief='flat',bd=0,padx=10,pady=10,cursor='hand2',bg=SIDE,fg=INK,activebackground='#e9e9ed',command=lambda k=key:self.show_page(k))
+                button.pack(fill='x',padx=9,pady=2);self.nav[key]=button
+        def scroll_navigation(event):
+            x,y=event.x_root,event.y_root
+            if not (nav_host.winfo_rootx()<=x<nav_host.winfo_rootx()+nav_host.winfo_width() and nav_host.winfo_rooty()<=y<nav_host.winfo_rooty()+nav_host.winfo_height()):return
+            number=getattr(event,'num',None);delta=getattr(event,'delta',0)
+            direction=-1 if number==4 or delta>0 else (1 if number==5 or delta<0 else 0)
+            if direction:
+                nav_canvas.yview_scroll(direction*3,'units');return 'break'
+        for sequence in ('<MouseWheel>','<Button-4>','<Button-5>'):
+            root.bind_all(sequence,scroll_navigation,add='+')
         bottom=tk.Frame(sidebar,bg=SIDE); bottom.pack(side='bottom',fill='x',padx=22,pady=25)
         tk.Label(bottom,text='●  本地处理',bg=SIDE,fg='#468366',font=('Microsoft YaHei UI',9)).pack(anchor='w')
-        tk.Label(bottom,text='文件不上传 · 原件不改动\n版本 1.2',bg=SIDE,fg=MUTED,justify='left',font=('Microsoft YaHei UI',9)).pack(anchor='w',pady=(7,0))
+        tk.Label(bottom,text='文件不上传 · 原件不改动\n版本 1.3',bg=SIDE,fg=MUTED,justify='left',font=('Microsoft YaHei UI',9)).pack(anchor='w',pady=(7,0))
         tk.Frame(root,bg=LINE,width=1).pack(side='left',fill='y')
         main=ttk.Frame(root,padding=(30,24,30,18)); main.pack(side='left',fill='both',expand=True)
         self.pages={}
         page_host=ttk.Frame(main); page_host.pack(fill='both',expand=True)
         page_host.columnconfigure(0,weight=1); page_host.rowconfigure(0,weight=1)
-        for key in ['split','merge','reorder']:
+        for key in ['split','merge','reorder','word']+list(self.tools):
             frame=ttk.Frame(page_host); frame.grid(row=0,column=0,sticky='nsew'); self.pages[key]=frame
         self.build_split(self.pages['split'])
         self.build_merge(self.pages['merge'])
         self.build_reorder(self.pages['reorder'])
+        self.build_word(self.pages['word'])
+        for key in self.tools:self.build_tool(self.pages[key],key)
         for variable in (self.move_m,self.move_n,self.move_t,self.move_position):
             variable.trace_add('write',self.refresh_order_preview)
         self.progress=ttk.Progressbar(main,mode='determinate'); self.progress.pack(fill='x',pady=(14,9))
@@ -243,6 +292,205 @@ class App:
         doc,output,name=self.reorder_doc,self.reorder_output.get(),self.reorder_name.get()
         self.start_job(lambda cb:[reorder_document(doc,m,n,t,position,output,name,cb)],'调整顺序')
 
+    def build_word(self,parent):
+        self.header(parent,'PDF 转 Word','把文字型 PDF 转成可编辑的 Word 文档，在本机完成。')
+        self.word_drop=self.drop_area(parent,'拖入一个 PDF 文件\n或点击这里选择文件',self.choose_word)
+        ttk.Label(parent,textvariable=self.word_info,style='Muted.TLabel',wraplength=750).pack(anchor='w',pady=(10,22))
+        card=tk.Frame(parent,bg='#f7f7f8',padx=20,pady=18);card.pack(fill='x')
+        tk.Label(card,text='转换前请了解',bg='#f7f7f8',fg=INK,font=('Microsoft YaHei UI',11,'bold')).pack(anchor='w')
+        tk.Label(card,text='• 文字和识别到的表格可编辑，图片仍是图片。\n• 尽量保留字号、页面大小和内容顺序，不保证排版完全一致。\n• 不提供 OCR：纯扫描件会提示无法提取文字。\n• 双栏、公式、复杂表格、页眉页脚可能需要手动整理。\n• 未重建的矢量图或表格内图片会附原页参考图。\n• 输出不保留原文件的密码保护或数字签名。',bg='#f7f7f8',fg=MUTED,justify='left',wraplength=690,font=('Microsoft YaHei UI',10)).pack(anchor='w',pady=(12,0))
+        result=ttk.Frame(parent);result.pack(fill='both',expand=True,pady=(18,0))
+        ttk.Label(result,text='转换情况',style='Section.TLabel').pack(anchor='w')
+        ttk.Label(result,textvariable=self.word_notice,style='Muted.TLabel',wraplength=730,justify='left').pack(anchor='w',pady=(10,0))
+        ttk.Separator(parent).pack(fill='x',pady=15)
+        row=ttk.Frame(parent);row.pack(fill='x')
+        ttk.Label(row,text='Word 文件名',style='Section.TLabel').pack(side='left')
+        ttk.Entry(row,textvariable=self.word_name).pack(side='left',fill='x',expand=True,padx=(18,0))
+        self.output_row(parent,self.word_output,lambda:self.pick_folder(self.word_output))
+        footer=ttk.Frame(parent);footer.pack(fill='x',pady=(14,0))
+        ttk.Label(footer,text='另存为 .docx，保留原始 PDF。',style='Muted.TLabel').pack(side='left')
+        self.word_button=ttk.Button(footer,text='转换为 Word  →',style='Primary.TButton',command=self.run_word)
+        self.word_button.pack(side='right')
+
+    def choose_word(self):
+        if self.busy:return
+        path=filedialog.askopenfilename(title='选择要转换的 PDF',filetypes=[('PDF 文件','*.pdf')])
+        if path:self.load_word(path)
+
+    def load_word(self,path):
+        if self.busy:return
+        doc=self.read_pdf(path)
+        if doc is None:return
+        self.word_doc=doc;self.word_info.set(f'{doc.path.name}  ·  {doc.pages} 页')
+        self.word_output.set(str(doc.path.parent));self.word_name.set(doc.path.stem[:80]+'.docx')
+        self.word_drop.configure(text='文件已就绪\n点击或拖入其他 PDF 可更换')
+        self.word_notice.set('已加载。转换时会检查文字；纯扫描件需要额外的 OCR 工具。')
+        self.status.set('文件已加载 · 文档越大转换越慢，请等待完成后再关闭')
+
+    def run_word(self):
+        if self.busy:return
+        if self.word_doc is None:messagebox.showinfo('先选择 PDF','请先选择要转换的 PDF。');return
+        if not self.word_output.get().strip() or not Path(self.word_output.get()).is_dir():
+            messagebox.showerror('选择输出位置','请选择存在的输出文件夹。');return
+        doc,output,name=self.word_doc,self.word_output.get(),self.word_name.get()
+        self.word_notice.set('正在提取文字和表格，转换不会上传文件。')
+        def operation(cb):
+            from word_export import convert_pdf_to_docx
+            result=convert_pdf_to_docx(doc,output,name,cb)
+            self.messages.put(('word_notice',result.summary))
+            return [result.path]
+        self.start_job(operation,'PDF 转 Word')
+
+    def build_tool(self,parent,key):
+        data=self.tools[key]
+        self.header(parent,data['title'],data['description'])
+        choose=(self.choose_images if key=='images_pdf' else lambda:self.choose_tool(key))
+        drop_text='拖入多张图片，或点击这里添加' if key=='images_pdf' else '拖入一个 PDF 文件\n或点击这里选择文件'
+        self.drop_area(parent,drop_text,choose)
+        ttk.Label(parent,textvariable=data['info'],style='Muted.TLabel',wraplength=750).pack(anchor='w',pady=(10,18))
+        config=ttk.Frame(parent);config.pack(fill='x')
+        def entry(label,variable,width=24,show=None):
+            row=ttk.Frame(config);row.pack(fill='x',pady=(0,10))
+            ttk.Label(row,text=label,width=13).pack(side='left')
+            widget=ttk.Entry(row,textvariable=variable,width=width,show=show or '')
+            widget.pack(side='left',fill='x',expand=True)
+        def choice(label,variable,values):
+            row=ttk.Frame(config);row.pack(fill='x',pady=(0,10))
+            ttk.Label(row,text=label,width=13).pack(side='left')
+            ttk.Combobox(row,textvariable=variable,values=values,state='readonly',width=18).pack(side='left')
+        if key in ('delete','rotate','pdf_images','watermark','numbers'):
+            entry('页码（1,3-5）',data['pages'])
+        if key=='rotate':choice('顺时针旋转',data['angle'],('90','180','270'))
+        if key=='pdf_images':
+            choice('图片格式',data['format'],('PNG','JPEG'));entry('DPI（36–300）',data['dpi'])
+        if key=='watermark':entry('水印文字',data['text'])
+        if key=='numbers':entry('原第 1 页编号',data['start'])
+        if key=='encrypt':
+            entry('新密码',data['password'],show='*');entry('再次输入',data['confirm'],show='*')
+        if key=='images_pdf':
+            entry('DPI（36–600）',data['dpi'])
+            self.image_list=tk.Listbox(config,height=5,selectmode='browse',bg=BG,fg=INK,relief='solid',bd=1,exportselection=False)
+            self.image_list.pack(fill='x')
+            controls=ttk.Frame(config);controls.pack(fill='x',pady=(7,0))
+            for label,command in [('+ 添加',self.choose_images),('上移',lambda:self.move_image(-1)),('下移',lambda:self.move_image(1)),('移除',self.remove_image),('清空',self.clear_images)]:
+                ttk.Button(controls,text=label,command=command).pack(side='left',padx=(0,7))
+        note=ttk.Frame(parent);note.pack(fill='both',expand=True,pady=(15,0))
+        ttk.Label(note,text=data['note'],style='Muted.TLabel',wraplength=730,justify='left').pack(anchor='w')
+        ttk.Label(note,text='所有输出均写入新文件夹，不修改原件。',style='Muted.TLabel').pack(anchor='w',pady=(10,0))
+        if key not in ('encrypt','images_pdf','pdf_images','text'):
+            ttk.Label(note,text='生成的 PDF 不保留密码保护；数字签名不会保持有效。',style='Muted.TLabel').pack(anchor='w',pady=(6,0))
+        ttk.Separator(parent).pack(fill='x',pady=15)
+        if key!='pdf_images':
+            row=ttk.Frame(parent);row.pack(fill='x')
+            ttk.Label(row,text='输出文件名',style='Section.TLabel').pack(side='left')
+            ttk.Entry(row,textvariable=data['name']).pack(side='left',fill='x',expand=True,padx=(18,0))
+        self.output_row(parent,data['output'],lambda:self.pick_folder(data['output']))
+        button=ttk.Button(parent,text=data['title']+'  →',style='Primary.TButton',command=lambda:self.run_tool(key))
+        button.pack(anchor='e',pady=(14,0));self.tool_buttons.append(button)
+
+    def choose_tool(self,key):
+        if self.busy:return
+        path=filedialog.askopenfilename(title='选择 PDF',filetypes=[('PDF 文件','*.pdf')])
+        if path:self.load_tool(key,path)
+
+    def load_tool(self,key,path):
+        if self.busy:return
+        doc=self.read_pdf(path)
+        if doc is None:return
+        data=self.tools[key];data['doc']=doc
+        data['info'].set(f'{doc.path.name}  ·  {doc.pages} 页')
+        data['output'].set(str(doc.path.parent))
+        data['pages'].set('1' if key=='delete' or doc.pages==1 else f'1-{doc.pages}')
+        data['password'].set('');data['confirm'].set('')
+        self.status.set('文件已加载 · 请检查选项后导出')
+
+    def choose_images(self):
+        if self.busy:return
+        paths=filedialog.askopenfilenames(title='选择图片',filetypes=[('图片','*.png *.jpg *.jpeg *.bmp *.webp')])
+        if paths:self.add_image_paths(paths)
+
+    def add_image_paths(self,paths):
+        if self.busy:return
+        from PIL import Image
+        added=0
+        for raw in paths:
+            path=Path(raw).resolve()
+            if path in self.image_paths:continue
+            try:
+                with Image.open(path) as img:
+                    if img.format not in ('PNG','JPEG','BMP','WEBP') or getattr(img,'n_frames',1)!=1:
+                        raise ValueError('请选择单帧 PNG/JPEG/BMP/WebP 图片。')
+                if len(self.image_paths)>=100:raise ValueError('每次最多添加 100 张图片。')
+            except Exception as exc:
+                messagebox.showerror('无法添加图片',f'{path.name}\n{exc}');continue
+            self.image_paths.append(path);added+=1
+            if not self.tools['images_pdf']['output'].get():self.tools['images_pdf']['output'].set(str(path.parent))
+        self.refresh_images();self.status.set(f'已添加 {added} 张图片 · 请检查排序')
+
+    def refresh_images(self,selected=None):
+        self.image_list.delete(0,'end')
+        for i,path in enumerate(self.image_paths,1):self.image_list.insert('end',f'{i:02d}  {path.name}')
+        self.tools['images_pdf']['info'].set(f'{len(self.image_paths)} 张图片 · 按列表从上到下合成')
+        if selected is not None and self.image_paths:
+            index=min(selected,len(self.image_paths)-1);self.image_list.selection_set(index);self.image_list.see(index)
+
+    def move_image(self,delta):
+        if self.busy:return
+        selected=self.image_list.curselection()
+        if not selected:return
+        i=selected[0];j=i+delta
+        if 0<=j<len(self.image_paths):
+            self.image_paths[i],self.image_paths[j]=self.image_paths[j],self.image_paths[i];self.refresh_images(j)
+
+    def remove_image(self):
+        if self.busy:return
+        selected=self.image_list.curselection()
+        if selected:
+            index=selected[0];self.image_paths.pop(index);self.refresh_images(index)
+
+    def clear_images(self):
+        if self.busy:return
+        if self.image_paths and messagebox.askyesno('清空图片列表','仅移出列表，不删除原图片，是否继续？'):
+            self.image_paths.clear();self.refresh_images()
+
+    def run_tool(self,key):
+        if self.busy:return
+        import extra_core as extra
+        import pdf_more as more
+        data=self.tools[key];doc=data['doc'];output=data['output'].get();name=data['name'].get()
+        if key!='images_pdf' and doc is None:messagebox.showinfo('先选择 PDF','请先选择一个 PDF。');return
+        try:
+            if not output.strip() or not Path(output).is_dir():raise SplitError('请选择存在的输出文件夹。')
+            pages=extra.parse_page_selection(data['pages'].get(),doc.pages) if key in ('delete','rotate','pdf_images','watermark','numbers') else None
+            if key=='delete':operation=lambda cb:[extra.delete_pages(doc,pages,output,name,cb)]
+            elif key=='rotate':
+                angle=int(data['angle'].get());operation=lambda cb:[extra.rotate_pages(doc,pages,angle,output,name,cb)]
+            elif key=='text':operation=lambda cb:[extra.extract_text(doc,output,name,cb)]
+            elif key=='encrypt':
+                password=data['password'].get()
+                if password!=data['confirm'].get():raise SplitError('两次输入的密码不一致。')
+                if not password.strip():raise SplitError('请输入非空的新密码。')
+                operation=lambda cb:[extra.encrypt_document(doc,password,output,name,cb)]
+            elif key=='decrypt':operation=lambda cb:[extra.decrypt_document(doc,output,name,cb)]
+            elif key=='images_pdf':
+                paths=list(self.image_paths);dpi=int(data['dpi'].get())
+                operation=lambda cb:[extra.images_to_pdf(paths,output,name,cb,dpi=dpi)]
+            elif key=='pdf_images':
+                dpi=int(data['dpi'].get());fmt=data['format'].get()
+                operation=lambda cb:more.render_document(doc,output,pages=pages,image_format=fmt,dpi=dpi,progress=cb)
+            elif key=='compress':
+                def operation(cb):
+                    path=more.compress_document(doc,output,name,cb)
+                    self.messages.put(('job_note',f'原始大小：{len(doc.data):,} 字节\n输出大小：{path.stat().st_size:,} 字节\n流压缩不保证变小；请检查输出。'))
+                    return [path]
+            elif key=='watermark':
+                text=data['text'].get();operation=lambda cb:[more.watermark_document(doc,output,text,name,pages=pages,progress=cb)]
+            elif key=='numbers':
+                start=int(data['start'].get());operation=lambda cb:[more.number_pages(doc,output,name,pages=pages,start_number=start,progress=cb)]
+        except ValueError as exc:
+            messagebox.showerror('检查输入',str(exc) if isinstance(exc,SplitError) else '请输入有效整数。');return
+        self.start_job(operation,data['title'])
+
     def show_page(self,mode):
         if self.busy:return
         self.mode=mode; self.pages[mode].tkraise()
@@ -269,6 +517,13 @@ class App:
         if self.busy:return
         paths=self.root.tk.splitlist(event.data)
         if self.mode=='merge':self.add_merge_paths(paths)
+        elif self.mode=='images_pdf':self.add_image_paths(paths)
+        elif self.mode in self.tools:
+            if len(paths)!=1:messagebox.showwarning('请选择一个文件','此功能一次只处理一个 PDF。')
+            else:self.load_tool(self.mode,paths[0])
+        elif self.mode=='word':
+            if len(paths)!=1:messagebox.showwarning('请选择一个文件','PDF 转 Word 一次只处理一个 PDF。')
+            else:self.load_word(paths[0])
         elif self.mode=='reorder':
             if len(paths)!=1:messagebox.showwarning('请选择一个文件','调整顺序一次只处理一个 PDF。')
             else:self.load_reorder(paths[0])
@@ -400,8 +655,9 @@ class App:
             self.locked_inputs=[]
 
     def start_job(self,operation,label):
-        self.busy=True;self.job_label=label;self.lock_inputs(True)
-        self.run_button.state(['disabled']);self.merge_button.state(['disabled']);self.reorder_button.state(['disabled'])
+        self.busy=True;self.job_label=label;self.job_note='';self.lock_inputs(True)
+        for button in self.tool_buttons:button.state(['disabled'])
+        self.run_button.state(['disabled']);self.merge_button.state(['disabled']);self.reorder_button.state(['disabled']);self.word_button.state(['disabled'])
         self.progress['value']=0;self.status.set(f'正在{label}，使用已确认的设置，请稍候…')
         def work():
             try:
@@ -415,13 +671,21 @@ class App:
             while True:
                 kind,value=self.messages.get_nowait()
                 if kind=='progress':self.progress['value']=value;continue
-                self.busy=False;self.lock_inputs(False);self.run_button.state(['!disabled']);self.merge_button.state(['!disabled']);self.reorder_button.state(['!disabled'])
+                if kind=='word_notice':self.word_notice.set(value);continue
+                if kind=='job_note':self.job_note=value;continue
+                for button in self.tool_buttons:button.state(['!disabled'])
+                self.busy=False;self.lock_inputs(False);self.run_button.state(['!disabled']);self.merge_button.state(['!disabled']);self.reorder_button.state(['!disabled']);self.word_button.state(['!disabled'])
+                if self.job_label=='设置密码':
+                    self.tools['encrypt']['password'].set('');self.tools['encrypt']['confirm'].set('')
                 if kind=='error':
-                    self.status.set('未完成 · 请检查错误提示');messagebox.showerror('处理失败',value)
+                    self.status.set('未完成 · 请检查错误提示')
+                    if self.job_label=='PDF 转 Word':self.word_notice.set(value)
+                    messagebox.showerror('处理失败',value)
                 else:
                     self.progress['value']=100
-                    self.status.set(f'{self.job_label}完成 · 已保存 {len(value)} 份 PDF · {value[0].parent}')
-                    if messagebox.askyesno('处理完成',f'成功导出 {len(value)} 份 PDF。\n\n{value[0].parent}\n\n现在打开结果文件夹吗？'):
+                    self.status.set(f'{self.job_label}完成 · 已保存 {len(value)} 个文件 · {value[0].parent}')
+                    result_text=self.word_notice.get() if self.job_label=='PDF 转 Word' else (self.job_note or f'成功导出 {len(value)} 个文件。')
+                    if messagebox.askyesno('处理完成',f'{result_text}\n\n{value[0].parent}\n\n现在打开结果文件夹吗？'):
                         if sys.platform=='win32':
                             try:os.startfile(value[0].parent)
                             except OSError as exc:messagebox.showwarning('无法打开文件夹',f'文件已导出，请手动打开结果目录。\n{exc}')

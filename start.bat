@@ -10,7 +10,7 @@ if not exist ".venv\Scripts\python.exe" (
     )
     if errorlevel 1 goto failed
 )
-".venv\Scripts\python.exe" -c "import pypdf, tkinterdnd2, cryptography" >nul 2>nul
+".venv\Scripts\python.exe" -c "import pypdf, tkinterdnd2, cryptography, pdfplumber, docx, pypdfium2, reportlab, PIL" >nul 2>nul
 if errorlevel 1 (
     ".venv\Scripts\python.exe" -m pip install -r requirements.txt
     if errorlevel 1 goto failed
