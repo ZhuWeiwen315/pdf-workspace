@@ -1,4 +1,4 @@
-PDF 工作台 1.3
+PDF 工作台 1.3.1
 ==============
 
 本地桌面 PDF 小工具。左侧选择功能，右侧操作；菜单可滚动。
@@ -9,15 +9,29 @@ PDF 工作台 1.3
 一、运行与升级
 1. Windows x64，需要 Python 3.10+，安装时保留 Tcl/Tk，勾选 PATH 或保留 Launcher。
    官方下载：https://www.python.org/downloads/windows/
-2. 完整解压后双击 start.bat。首次创建本目录的 .venv，从 PyPI 安装依赖，需要联网。
-   以后依赖齐全时直接启动，日常处理无需联网。
-3. v1.3 增加了 Word/图像/水印转换依赖。升级时可把本版源码和脚本复制到旧目录，
-   保留原 .venv；第一次升级启动会补装缺少的依赖，不必删除重装整个环境。
+2. 完整解压后双击 start.bat。会先检测已安装的 Python 版本/位数/Tcl-Tk。
+   兼容的旧环境会复用；Python 3.9 的旧 .venv 会保留，不会删除。
+   没有可用环境时，用兼容解释器另建 .venv-py313 等目录；仅首次/依赖变化时联网安装。
+   如果找不到 Python 3.10+ x64，则停止，不会继续尝试下载不兼容依赖。
+3. 升级时可把本版全部源码和脚本复制到旧程序目录，保留所有旧环境与用户文件。
+   请不要只复制 start.bat；新版还需要 bootstrap.py。依赖齐全时不再运行 pip 安装。
 4. 不要在压缩包内运行，不要以管理员身份启动（可能阻止资源管理器拖放）。
 5. start.bat 是日常入口；build_exe.bat 是重新打包程序，不应每次启动都运行。
 
 本包是源码运行包，不含预制 Windows EXE。Windows 实机和 EXE 打包验证边界
 见 TEST_REPORT.txt；Linux 测试不能替代 Windows 实机测试。
+
+Python 3.9 安装报错的处理：
+- 日志中的 cp39-cp39-win_amd64 表示正在使用 Python 3.9。
+- pdfplumber 0.11.9 固定依赖 pdfminer.six 20251230，后者要求 Python >=3.10。
+  因此单独升级 pip 20.2.3 不能解决此版本不兼容。
+- 安装官方 Python 3.13 或 3.12 的 Windows 64-bit installer，保留 Tcl/Tk 和 Launcher。
+  无需卸载 3.9，无需删除 .venv，也不需要手动改系统默认 Python。
+- 再双击新版 start.bat，启动器自动选择版本并保留旧环境。
+- 若已有兼容版本仍失败，双击 diagnose.bat；它只读检查，不创建环境或下载。
+  启动器会打印实际选用路径、Python 位数/版本和 pip 版本。
+- 仅在确认兼容 Python 后还下载不到包时，再检查镜像同步、网络或 pip。
+  程序不会自动改镜像，也不会关闭系统安全设置。
 
 二、文档整理
 PDF 分离：拖入一份 PDF，填份数后“均分生成”，再修改每份起止页。
@@ -95,6 +109,8 @@ PDF 转 Word 不使用 PyMuPDF/pdf2docx；PDFium 原生组件拥有额外许可�
 启动界面：python app.py
 测试：python -m unittest discover -s tests -v
 
+bootstrap.py      兼容版本检测/安全选择运行环境
+diagnose.bat      只读环境诊断
 app.py            桌面界面与任务调度
 core.py           分离/合并/页序核心
 word_export.py    Word 基础内容重建

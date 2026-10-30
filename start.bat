@@ -1,26 +1,26 @@
 @echo off
 setlocal
+chcp 65001 >nul
+set PYTHONUTF8=1
 cd /d "%~dp0"
-if not exist ".venv\Scripts\python.exe" (
-    where py >nul 2>nul
-    if not errorlevel 1 (
-        py -3 -m venv .venv
-    ) else (
-        python -m venv .venv
+where py >nul 2>nul
+if not errorlevel 1 (
+    py -3 bootstrap.py %*
+) else (
+    where python >nul 2>nul
+    if errorlevel 1 (
+        echo No Python found. Install official Python 3.13 or 3.12 x64 with Tcl/Tk and Python Launcher.
+        echo https://www.python.org/downloads/windows/
+        pause
+        exit /b 2
     )
-    if errorlevel 1 goto failed
+    python bootstrap.py %*
 )
-".venv\Scripts\python.exe" -c "import pypdf, tkinterdnd2, cryptography, pdfplumber, docx, pypdfium2, reportlab, PIL" >nul 2>nul
 if errorlevel 1 (
-    ".venv\Scripts\python.exe" -m pip install -r requirements.txt
-    if errorlevel 1 goto failed
+    echo.
+    if "%~1"=="--diagnose" exit /b 1
+    echo Startup stopped. Keep the messages above; no old environment was deleted.
+    pause
+    exit /b 1
 )
-".venv\Scripts\python.exe" app.py
-if errorlevel 1 goto failed
 exit /b 0
-:failed
-echo.
-echo Startup failed. Install Python 3.10+ with Tcl/Tk, then retry.
-echo Keep this window open and send the full error message for help.
-pause
-exit /b 1

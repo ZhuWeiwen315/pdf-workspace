@@ -13,12 +13,22 @@
 面向 Windows x64，建议 Python 3.12 或 3.13（最低 3.10），安装时保留 Tcl/Tk。
 
 1. 下载并完整解压源码。
-2. 双击 `start.bat`。首次安装依赖需要联网；依赖齐全后日常使用无需联网。
+2. 双击 `start.bat`。启动器先检查 Python 3.10+ x64 / Tcl-Tk，再安装依赖；首次需要联网，依赖齐全后不再安装。旧的不兼容 `.venv` 保留不动。
 3. 从左侧选择功能，拖入文件或点击选择，检查参数再导出。
 
 **当前交付为源码运行包，不含预制 EXE。** `build_exe.bat` 用于在 Windows 构建便携目录，不是日常启动入口。分发时保留整个 `dist/PDFWorkspace` 和其中的第三方许可证目录。
 
 升级时可将新源码覆盖到旧程序目录，保留 `.venv`。v1.3 增加 Word、图像和水印依赖，首次升级会补装这些组件。
+
+## Python 3.9 启动失败修复
+
+如果日志包含 `cp39-cp39-win_amd64`，当前使用的是 Python 3.9。`pdfplumber 0.11.9` 固定依赖的 `pdfminer.six 20251230` 要求 **Python >=3.10**，仅升级旧 pip 无法解决。
+
+1. 安装官方 **Python 3.13 或 3.12 Windows 64-bit**，保留 Tcl/Tk 与 Python Launcher。
+2. 将本版全部文件更新到程序目录（包括新增 `bootstrap.py`），无需删除 `.venv` 或卸载 3.9。
+3. 双击 `start.bat`。它自动发现解释器，优先 3.13/3.12；兼容环境复用，否则安全另建 `.venv-py313` 等目录。
+
+找不到兼容 Python 时会停止，不会反复下载失败。`diagnose.bat` 可生成只读环境诊断；不安装任何内容。启动器只在需要时更新所选环境的旧 pip，不修改系统默认 Python 或镜像。构建脚本也使用同一版本检查，并使用独立 `.build-env-py...`。
 
 ## 页序调整规则
 
@@ -49,7 +59,7 @@ python app.py
 python -m unittest discover -s tests -v
 ```
 
-v1.3：118 项自动化测试通过；在 Linux 桌面完成真实拖放及部分功能导出检查。**Windows 实机、高 DPI 和 EXE 构建尚未验证**，不将 Linux 测试等同于 Windows 兼容性确认。
+v1.3.1：134 项自动化测试通过（含 16 项启动器回归）；在 Linux 桌面完成真实拖放及部分功能导出检查。**Windows 实机、高 DPI 和 EXE 构建尚未验证**，不将 Linux 测试等同于 Windows 兼容性确认。
 
 ## 依赖许可
 

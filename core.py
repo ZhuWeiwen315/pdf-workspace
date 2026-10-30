@@ -106,7 +106,7 @@ def split_document(doc, parts, output_dir, progress=None):
             writer = PdfWriter()
             # append preserves page objects/resources and reconstructs form fields.
             writer.append(doc.reader, pages=(part.start - 1, part.end), import_outline=False)
-            writer.add_metadata({'/Producer': 'PDF Workspace 1.3'})
+            writer.add_metadata({'/Producer': 'PDF Workspace 1.3.1'})
             target = folder / f'{stem}_{i:02d}_p{part.start}-{part.end}.pdf'
             with target.open('xb') as stream:
                 writer.write(stream)
@@ -172,7 +172,7 @@ def merge_documents(documents, output_dir, filename='merged.pdf', progress=None)
             writer.append(reader, import_outline=False)
             done += doc.pages
             if progress: progress(done, total)
-        writer.add_metadata({'/Producer': 'PDF Workspace 1.3'})
+        writer.add_metadata({'/Producer': 'PDF Workspace 1.3.1'})
         target = folder / filename
         with target.open('xb') as stream:
             writer.write(stream)
@@ -231,7 +231,7 @@ def reorder_document(doc, m, n, t, position, output_dir, filename='调整顺序.
     try:
         writer = PdfWriter()
         writer.append(doc.reader, pages=[value - 1 for value in order], import_outline=False)
-        writer.add_metadata({'/Producer': 'PDF Workspace 1.3'})
+        writer.add_metadata({'/Producer': 'PDF Workspace 1.3.1'})
         target = folder / filename
         with target.open('xb') as stream:
             writer.write(stream)

@@ -68,7 +68,7 @@ class App:
         self.info = tk.StringVar(value='尚未选择文件')
         self.merge_info = tk.StringVar(value='0 个文件 · 0 页')
         self.status = tk.StringVar(value='就绪 · 所有文件在本机处理')
-        root.title('PDF 工作台 1.3')
+        root.title('PDF 工作台 1.3.1')
         root.geometry('1100x790')
         root.minsize(990, 730)
         root.configure(bg=BG)
@@ -124,7 +124,7 @@ class App:
             root.bind_all(sequence,scroll_navigation,add='+')
         bottom=tk.Frame(sidebar,bg=SIDE); bottom.pack(side='bottom',fill='x',padx=22,pady=25)
         tk.Label(bottom,text='●  本地处理',bg=SIDE,fg='#468366',font=('Microsoft YaHei UI',9)).pack(anchor='w')
-        tk.Label(bottom,text='文件不上传 · 原件不改动\n版本 1.3',bg=SIDE,fg=MUTED,justify='left',font=('Microsoft YaHei UI',9)).pack(anchor='w',pady=(7,0))
+        tk.Label(bottom,text='文件不上传 · 原件不改动\n版本 1.3.1',bg=SIDE,fg=MUTED,justify='left',font=('Microsoft YaHei UI',9)).pack(anchor='w',pady=(7,0))
         tk.Frame(root,bg=LINE,width=1).pack(side='left',fill='y')
         main=ttk.Frame(root,padding=(30,24,30,18)); main.pack(side='left',fill='both',expand=True)
         self.pages={}

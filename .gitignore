@@ -1,6 +1,6 @@
 # Python environments and generated files
-.venv/
-.build-env/
+.venv*/
+.build-env*/
 venv/
 __pycache__/
 *.py[cod]
