@@ -21,7 +21,7 @@ class BootstrapTests(unittest.TestCase):
             python,dest=boot.choose_environment(root,[conda],[conda,official],build=True)
             self.assertEqual(python,Path('official.exe'))
             self.assertEqual(dest,root/'.build-env-py312')
-            self.assertEqual(marker.read_text(),'preserve')
+            self.assertEqual(marker.read_text(encoding='utf-8'),'preserve')
     def test_build_conda_only_stops(self):
         conda=info();conda['conda']=True
         self.assertEqual(boot.choose_environment(Path('sample'),[conda],[conda],build=True),(None,None))
@@ -62,7 +62,7 @@ class BootstrapTests(unittest.TestCase):
             root=Path(temp);old=root/'.venv';old.mkdir();sentinel=old/'keep.txt';sentinel.write_text('user data')
             python,dest=boot.choose_environment(root,[info((3,9,0),str(old/'python.exe'))],[info(path='new.exe')])
             self.assertEqual(python,Path('new.exe'));self.assertEqual(dest,root/'.venv-py313')
-            self.assertEqual(sentinel.read_text(),'user data');self.assertFalse(dest.exists())
+            self.assertEqual(sentinel.read_text(encoding='utf-8'),'user data');self.assertFalse(dest.exists())
     def test_corrupt_target_not_overwritten(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);(root/'.venv-py313').mkdir()
@@ -78,7 +78,7 @@ class BootstrapTests(unittest.TestCase):
     def test_requirements(self):
         pins=boot.parse_requirements(Path(boot.__file__).parent/'requirements.txt')
         self.assertEqual(pins['pypdf'],'6.10.0');self.assertEqual(pins['pdfplumber'],'0.11.9')
-    def test_python38_syntax(self):ast.parse(Path(boot.__file__).read_text(),feature_version=(3,8))
+    def test_python38_syntax(self):ast.parse(Path(boot.__file__).read_text(encoding='utf-8'),feature_version=(3,8))
     def test_build_separate_environment(self):
         with tempfile.TemporaryDirectory() as temp:
             _,dest=boot.choose_environment(Path(temp),[],[info()],build=True)

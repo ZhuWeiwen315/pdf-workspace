@@ -21,7 +21,7 @@ class PortableTests(unittest.TestCase):
             (source/'INDEX.txt').write_text('fixture')
             with patch.object(portable_entry,'resource_root',return_value=root):
                 portable_entry.export_licenses(root/'out')
-                self.assertEqual((root/'out'/'INDEX.txt').read_text(),'fixture')
+                self.assertEqual((root/'out'/'INDEX.txt').read_text(encoding='utf-8'),'fixture')
     def test_export_never_overwrites_existing_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);source=root/'THIRD_PARTY_LICENSES';source.mkdir()
@@ -29,7 +29,7 @@ class PortableTests(unittest.TestCase):
             marker=output/'keep';marker.write_text('original')
             with patch.object(portable_entry,'resource_root',return_value=root):
                 with self.assertRaises(FileExistsError):portable_entry.export_licenses(output)
-            self.assertEqual(marker.read_text(),'original')
+            self.assertEqual(marker.read_text(encoding='utf-8'),'original')
     def test_missing_notices_error(self):
         with tempfile.TemporaryDirectory() as folder,patch.object(portable_entry,'resource_root',return_value=Path(folder)):
             with self.assertRaises(RuntimeError):portable_entry.export_licenses(Path(folder)/'out')
@@ -44,12 +44,12 @@ class PortableTests(unittest.TestCase):
             report=Path(folder)/'result.json'
             with patch('tkinterdnd2.TkinterDnD.Tk',side_effect=RuntimeError('synthetic tk failure')):
                 self.assertEqual(portable_smoke.run_self_test(report),1)
-                data=json.loads(report.read_text());self.assertFalse(data['ok'])
+                data=json.loads(report.read_text(encoding='utf-8'));self.assertFalse(data['ok'])
                 self.assertIn('synthetic tk failure',data['error'])
                 with self.assertRaises(FileExistsError):portable_smoke.run_self_test(report)
     def test_build_lock_has_hash_for_every_pin(self):
         lock=Path(__file__).resolve().parent.parent/'requirements-windows-build.lock'
-        for line in lock.read_text().splitlines():
+        for line in lock.read_text(encoding='utf-8').splitlines():
             if not line.startswith('#'):
                 self.assertRegex(line,r'^\S+==\S+ --hash=sha256:[0-9a-f]{64}$')
 

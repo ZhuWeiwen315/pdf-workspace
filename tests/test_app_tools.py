@@ -30,7 +30,7 @@ class DispatchTests(unittest.TestCase):
     def test_delete_dispatch(self):self.assertEqual(len(PdfReader(self.run_key('delete')[0]).pages),2)
     def test_rotate_dispatch(self):self.assertEqual(PdfReader(self.run_key('rotate')[0]).pages[0].rotation,90)
     def test_text_dispatch(self):
-        self.data['name']=Value('out.txt');self.assertIn('Page 1',self.run_key('text')[0].read_text())
+        self.data['name']=Value('out.txt');self.assertIn('Page 1',self.run_key('text')[0].read_text(encoding='utf-8'))
     def test_encrypt_dispatch(self):
         reader=PdfReader(self.run_key('encrypt')[0]);self.assertTrue(reader.is_encrypted);self.assertTrue(reader.decrypt('new-password'))
     def test_decrypt_dispatch(self):
