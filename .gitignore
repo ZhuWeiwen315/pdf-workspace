@@ -25,3 +25,7 @@ reordered_*/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Portable build outputs
+portable-dist/
+pdfworkspace_build_*/

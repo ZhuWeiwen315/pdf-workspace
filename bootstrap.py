@@ -17,9 +17,14 @@ PREFERRED = [(3, 13), (3, 12), (3, 11), (3, 10)]
 ROOT = Path(__file__).resolve().parent
 PROBE = r'''
 import json,sys,struct,sysconfig
+from pathlib import Path
 info={'version':list(sys.version_info[:3]),'bits':struct.calcsize('P')*8,'platform':sysconfig.get_platform(),'executable':sys.executable,'base':getattr(sys,'_base_executable',sys.executable),'tk':False}
+info['base_prefix']=sys.base_prefix
+info['conda']=(Path(sys.prefix,'conda-meta').is_dir() or Path(sys.base_prefix,'conda-meta').is_dir() or 'conda' in sys.version.lower() or 'anaconda' in sys.version.lower())
 try:
- import tkinter,venv
+ import tkinter,venv,_tkinter
+ info['tkinter_binary']=_tkinter.__file__
+ info['tcl_library']=tkinter.Tcl().eval('info library')
  info['tk']=True
 except Exception as e: info['tk_error']=str(e)
 try:
@@ -127,11 +132,11 @@ def environment_paths(root, build=False):
 
 def choose_environment(root, existing_infos, interpreter_infos, build=False):
     """Return (python_path, create_path_or_None); never delete existing paths."""
-    good = [info for info in existing_infos if is_compatible(info)]
+    good = [info for info in existing_infos if is_compatible(info) and (not build or not info.get('conda'))]
     if good:
         selected = min(good,key=rank)
         return Path(selected['path']), None
-    good = [info for info in interpreter_infos if is_compatible(info)]
+    good = [info for info in interpreter_infos if is_compatible(info) and (not build or not info.get('conda'))]
     if not good:
         return None, None
     selected = min(good,key=rank)
@@ -188,7 +193,12 @@ def show_info(label, info):
     verdict = '可用' if is_compatible(info) else '不兼容（需 Python 3.10+、Windows x64、Tcl/Tk）'
     print('%s: Python %s / %s 位 / %s / %s' % (label,version,info['bits'],verdict,info['path']))
     print('  pip: ' + str(info.get('pip') or '未安装'))
+    print('  base_prefix: ' + str(info.get('base_prefix','未知')))
+    print('  Conda: ' + str(bool(info.get('conda'))))
+    print('  _tkinter: ' + str(info.get('tkinter_binary','不可用')))
+    print('  Tcl library: ' + str(info.get('tcl_library','不可用')))
     if not info.get('tk'):
+        print('  Tcl/Tk error: ' + str(info.get('tk_error','未知')))
         print('  缺少 Tcl/Tk：请在官方 Python 安装器中选择 Modify，启用 Tcl/Tk。pip 无法补装此组件。')
 
 
@@ -199,7 +209,9 @@ def is_windows():
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     diagnose = '--diagnose' in argv
-    build = '--build' in argv
+    build = any(flag in argv for flag in ('--build','--diagnose-build','--fresh-build'))
+    fresh_build = '--fresh-build' in argv
+    diagnose = diagnose or '--diagnose-build' in argv
     if hasattr(sys.stdout,'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8',errors='replace')
     print('PDF 工作台启动检查（不修改系统默认 Python，不删除旧环境）')
@@ -208,10 +220,14 @@ def main(argv=None):
     interpreters = [info for path in candidates() for info in [probe(path)] if info]
     for info in existing: show_info('已有程序环境',info)
     for info in interpreters: show_info('已安装解释器',info)
-    python, destination = choose_environment(ROOT,existing,interpreters,build)
+    if fresh_build:
+        print('全新重建：不会复用已有构建环境，全部旧目录保留。')
+    python, destination = choose_environment(ROOT,[] if fresh_build else existing,interpreters,build)
     if not is_windows():
         print('此启动器用于 Windows x64；其他平台请按 README 手动运行。')
         return 0 if diagnose else 2
+    if build:
+        print('构建策略：跳过 Conda 及其派生 venv，保留旧环境；请使用 python.org 的 CPython x64。')
     if python is None:
         print('\n没有找到兼容的 Python，已停止，不会尝试下载依赖。')
         print('请安装官方 Python 3.13 或 3.12 的 Windows 64-bit installer，保留 Tcl/Tk 与 Python Launcher。')
@@ -241,7 +257,9 @@ def main(argv=None):
             if not dependencies_ready(python,pins):
                 raise RuntimeError('安装后检查仍未通过，请保留输出；不要反复删除环境。')
         if build:
-            checked([python,'-m','pip','install','pyinstaller'],'准备 Windows 打包工具')
+            checked([python,'-I','-c','import tkinter; r=tkinter.Tk(); r.withdraw(); r.update(); r.destroy()'], '验证实际构建环境的 Tcl/Tk')
+            checked([python,'-m','pip','install','--upgrade','pyinstaller'],'准备 Windows 打包工具')
+            checked([python,'-m','PyInstaller','--version'],'实际 PyInstaller 版本')
             checked([python,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir','--name','PDFWorkspace',
                      '--collect-all','tkinterdnd2','--collect-all','pypdfium2','--collect-all','pypdfium2_raw',
                      '--collect-all','docx','--collect-all','reportlab','app.py'],'构建 Windows 程序')

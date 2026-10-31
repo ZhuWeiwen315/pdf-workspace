@@ -1,3 +1,15 @@
+# PDFWorkspace 1.4：单文件便携版（待 Windows CI 验证）
+
+新版交付目标是 `PDFWorkspace.exe` 单文件，内置运行库，用户不需要 Python/Conda/BAT。
+将已验证的新 EXE 关闭后移动到桌面或其他普通目录即可运行，不依赖原源码路径。
+旧版 onedir 中的 EXE 不能单独移动；不要把新旧打包方式混用。
+
+本分支尚未经过 Windows CI；这里是构建源码，不是已经生成的 Windows EXE。
+完整构建、自检、许可及安全边界见 [PORTABLE_BUILD.md](PORTABLE_BUILD.md)。
+原有14项PDF功能不变，详细使用说明见 README.txt。
+
+---
+
 # PDF 工作台 · PDF Workspace
 
 一个基于 Python / Tkinter 的本地 PDF 工具箱。左侧分组选择功能，右侧操作，文件不上传，输出另存到新文件夹。
@@ -59,7 +71,7 @@ python app.py
 python -m unittest discover -s tests -v
 ```
 
-v1.3.1：134 项自动化测试通过（含 16 项启动器回归）；在 Linux 桌面完成真实拖放及部分功能导出检查。**Windows 实机、高 DPI 和 EXE 构建尚未验证**，不将 Linux 测试等同于 Windows 兼容性确认。
+v1.4 便携构建源码：147 项自动化测试在 Linux 通过；原功能此前在 Linux 桌面完成真实拖放及部分导出检查。新冻结程序的搬迁/原生运行需等待 Windows CI。**Windows 实机、高 DPI 和 EXE 构建尚未验证**，不将 Linux 测试等同于 Windows 兼容性确认。
 
 ## 依赖许可
 

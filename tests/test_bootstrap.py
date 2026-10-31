@@ -12,6 +12,36 @@ def info(version=(3,13,2),path='python.exe',bits=64,tk=True,platform='win-amd64'
     return dict(version=list(version),path=path,base=path,bits=bits,tk=tk,platform=platform)
 
 class BootstrapTests(unittest.TestCase):
+    def test_build_skips_conda_existing_and_candidate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); old=root/'.build-env-py313'; old.mkdir()
+            marker=old/'keep'; marker.write_text('preserve')
+            conda=info(path='conda.exe');conda['conda']=True
+            official=info((3,12,0),path='official.exe');official['conda']=False
+            python,dest=boot.choose_environment(root,[conda],[conda,official],build=True)
+            self.assertEqual(python,Path('official.exe'))
+            self.assertEqual(dest,root/'.build-env-py312')
+            self.assertEqual(marker.read_text(),'preserve')
+    def test_build_conda_only_stops(self):
+        conda=info();conda['conda']=True
+        self.assertEqual(boot.choose_environment(Path('sample'),[conda],[conda],build=True),(None,None))
+    def test_conda_source_run_still_allowed(self):
+        conda=info();conda['conda']=True
+        self.assertEqual(boot.choose_environment(Path('sample'),[conda],[]),(Path('python.exe'),None))
+    def test_probe_reports_tk_origin(self):
+        import sys
+        result=boot.probe(sys.executable)
+        self.assertIn('base_prefix',result)
+        self.assertIn('conda',result)
+    def test_build_diagnose_never_installs(self):
+        with patch.object(boot,'is_windows',return_value=True),patch.object(boot,'environment_paths',return_value=[]),patch.object(boot,'candidates',return_value=['base']),patch.object(boot,'probe',return_value=info()),patch.object(boot,'checked') as execute,redirect_stdout(StringIO()):
+            self.assertEqual(boot.main(['--diagnose-build']),0);execute.assert_not_called()
+    def test_fresh_build_does_not_reuse_existing(self):
+        with patch.object(boot,'is_windows',return_value=True),patch.object(boot,'environment_paths',return_value=['old']),patch.object(boot,'candidates',return_value=['base']),patch.object(boot,'probe',return_value=info()),patch.object(boot,'choose_environment',return_value=(None,None)) as choose,patch.object(boot,'checked') as execute,redirect_stdout(StringIO()):
+            self.assertEqual(boot.main(['--fresh-build']),2)
+            self.assertEqual(choose.call_args.args[1],[])
+            self.assertTrue(choose.call_args.args[3])
+            execute.assert_not_called()
     def test_python39_rejected(self):self.assertFalse(boot.is_compatible(info((3,9,13))))
     def test_supported_versions(self):
         for minor in [10,11,12,13,14]:self.assertTrue(boot.is_compatible(info((3,minor,0))))

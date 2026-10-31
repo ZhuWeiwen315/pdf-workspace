@@ -1,0 +1,28 @@
+EXE 的 _tkinter DLL 启动错误：构建诊断和修复补丁
+
+将 bootstrap.py、diagnose_build.bat、rebuild_exe.bat 放到原软件完整源码目录，和 app.py、start.bat 同级。
+覆盖 bootstrap.py；不删除 .venv / .build-env，也不修改 Conda。
+1. 先双击 diagnose_build.bat，保留全部输出/截图。此步骤只读，不联网安装。
+2. 本补丁的 EXE 构建改用非 Conda 的 CPython，避免当前未经验证的 Conda 派生 venv 打包路径。
+   如果没有合适解释器，请安装 python.org 的 Python 3.12 或 3.13 x64，保留 Tcl/Tk 和 Launcher。
+   无需卸载 Conda 或旧 Python。
+3. 关闭 Anaconda Prompt，从资源管理器双击 rebuild_exe.bat。
+   会跳过已有 Conda 构建环境，创建不同名称的新环境；首次需要联网安装依赖。
+4. 构建完成后双击 dist\PDFWorkspace\PDFWorkspace.exe，整个文件夹必须保留。
+   若需要保留旧构建结果，构建前先将 dist\PDFWorkspace 重命名备份（构建会更新该输出目录）。
+
+诊断解释：py -3.12 -m tkinter 成功只证明该解释器本身正常，不证明 EXE 收齐 DLL。
+若 _tkinter.pyd 或 Tcl/Tk DLL 缺失，可能没有打包进去、只复制了 EXE、或被安全软件隔离。
+文件都存在仍报错，可能是 DLL 的下级依赖缺失/版本或架构冲突；仅凭此错误不能确定哪一个。
+不要从第三方 DLL 下载站复制 DLL，也不要跨 Conda/官方 Python 混拷 Tcl/Tk DLL。
+可附上 build\PDFWorkspace\warn-PDFWorkspace.txt 和构建日志继续定位。
+
+该补丁已通过 Linux 上逻辑与回归测试，但没有 Windows 实机构建/运行验证；
+排除 Conda 是降低变量的构建策略，不是已经证明所有 Conda 均不可打包。
+
+放到桌面：不要单独移动 EXE。请复制整个 dist\PDFWorkspace 文件夹至桌面，
+确认里面的 PDFWorkspace.exe、_internal 及许可证文件夹均保留，再运行里面的 EXE。
+更简单的方法是保持原文件夹不动，为 EXE 创建桌面快捷方式。
+源码目录及 .venv/.build-env 不能像发行文件夹一样可靠迁移；若移动过源码目录，
+请使用本补丁的 rebuild_exe.bat，它明确拒绝复用旧构建环境，新建独立编号目录。
+这不会删除旧环境。普通 build_exe.bat 仍会复用可用环境，不会自动判定所有搬迁。

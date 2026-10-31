@@ -1,3 +1,8 @@
+新版便携交付说明（1.4，待 Windows CI 验证）：
+普通用户只运行发布的单文件 PDFWorkspace.exe，不需要下文开发者源码运行步骤。
+关于单文件搬迁、临时解压、未签名和验证限制，先阅读 PORTABLE_BUILD.md。
+下文的 start.bat / build_exe.bat 为旧版源码/onedir开发流程，不是新版用户入口。
+
 PDF 工作台 1.3.1
 ==============
 
