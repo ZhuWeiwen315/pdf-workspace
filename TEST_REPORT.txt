@@ -1,12 +1,23 @@
-便携构建增量：2026-10-31
-Linux：147项回归通过（含新7项）；14功能合成文件 smoke实际通过。
-Windows：CI流程已编写，未提交运行；不能声明已产出EXE或Windows DLL验证通过。
-待CI执行：Windows锁文件安装/pip check、全部回归、onefile构建、双路径冻结EXE自检。
-Windows真实拖放手势、SmartScreen和用户系统运行尚未验证。
+便携版 1.4 - Windows CI 已验证（2026-10-31）
+==========================================
+源码提交：0296905f8c9e9c83505a448d14842dfa99e85f91
+CI：https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673
+环境：Windows Server 2022 x64，CPython 3.12.10 x64。
+结果：锁定wheel安装、pip check、147项回归、onefile构建全部通过。
+仅复制EXE到“Desktop Copy”和“中文路径 与空格”，从无关工作目录运行；
+移除Python/Conda/Tcl环境变量，PATH仅Windows/System32；两份自检报告均ok=true。
+覆盖完整UI初始化、TkDnD 2.9.4、全部14项PDF功能、原件不变与内嵌许可证导出。
+EXE SHA256：8536ef3d54113bce54bb7b88100e8538f6212c446b68df4086f1c758dfa781c4
+ZIP SHA256：73c73156e2bb3296f0df3ddad6fc8315265f1e7c29008fb77c367b27c1ec4267
+下载后EXE和ZIP哈希与构建清单及GitHub artifact digest一致。
+先前CI发现的YAML标量和测试读中文文件默认编码问题均已修复并通过复跑。
+限制：未签名、真实Windows鼠标拖放手势/高DPI/所有用户系统未全面验证；
+CI主机安装了Python，不能称从未装Python的干净机器测试。
+Linux 147项回归通过。后续仅文档更新不重新构建或改变上述EXE。
 
-以下为旧版历史测试记录，不代表新版Windows构建已验收：
+以下为旧版历史测试记录；其中“未验证”描述只对应当时版本：
 
-PDF 工作台 1.3.1 - 测试与边界
+
 2026-10-30
 ===========================
 

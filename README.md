@@ -1,10 +1,13 @@
-# PDFWorkspace 1.4：单文件便携版（待 Windows CI 验证）
+# PDFWorkspace 1.4：单文件便携版
 
 新版交付目标是 `PDFWorkspace.exe` 单文件，内置运行库，用户不需要 Python/Conda/BAT。
 将已验证的新 EXE 关闭后移动到桌面或其他普通目录即可运行，不依赖原源码路径。
 旧版 onedir 中的 EXE 不能单独移动；不要把新旧打包方式混用。
 
-本分支尚未经过 Windows CI；这里是构建源码，不是已经生成的 Windows EXE。
+2026-10-31 的 [Windows CI 构建与验证](https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673) 已通过：Windows Server 2022 x64 / CPython 3.12.10，147 项回归、单文件 EXE 构建、两个搬移路径上的实际 EXE 自检全部成功。
+已验证 EXE 来自源码提交 `0296905f8c9e9c83505a448d14842dfa99e85f91`，SHA256：`8536ef3d54113bce54bb7b88100e8538f6212c446b68df4086f1c758dfa781c4`。
+双自检涵盖完整 UI 初始化、TkDnD 2.9.4 加载、14 项 PDF 功能、原件字节不变及内嵌许可证导出。
+**未签名；真实鼠标拖放手势、高 DPI、所有用户系统和从未安装 Python 的干净虚拟机未全面验证。** CI 移除了子进程 PATH 中的 Python 和 Python/Conda/Tcl 环境变量，但主机本身安装了 Python。
 完整构建、自检、许可及安全边界见 [PORTABLE_BUILD.md](PORTABLE_BUILD.md)。
 原有14项PDF功能不变，详细使用说明见 README.txt。
 
@@ -20,7 +23,15 @@
 - **格式转换**：PDF 转 Word、提取文字、PDF 转 PNG/JPEG、图片转 PDF。
 - **保护与修饰**：AES-256 打开密码、用已知密码移除保护、内容流压缩、文字水印、页码。
 
-## 快速开始
+## 快速开始：普通用户
+
+1. 打开[已验证构建](https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673)，在 **Artifacts** 下载 **PDFWorkspace-Windows-x64-portable**（下载可能需要登录 GitHub）。
+2. 解压 ZIP，双击 `PDFWorkspace.exe`；无需安装 Python、Conda 或运行 BAT。只移动这个 EXE 即可，先关闭程序再移动。
+3. 从左侧选择功能，拖入文件或点击选择，检查参数再导出。
+
+此 Actions 下载有保留期限，目前到 **2026-11-30**；不是永久 Release。ZIP 内附构建清单、自检报告和日志，程序运行只需 EXE。未签名可能触发未知发布者提示，不要关闭安全软件。
+
+## 源码运行：开发者
 
 面向 Windows x64，建议 Python 3.12 或 3.13（最低 3.10），安装时保留 Tcl/Tk。
 
@@ -28,7 +39,7 @@
 2. 双击 `start.bat`。启动器先检查 Python 3.10+ x64 / Tcl-Tk，再安装依赖；首次需要联网，依赖齐全后不再安装。旧的不兼容 `.venv` 保留不动。
 3. 从左侧选择功能，拖入文件或点击选择，检查参数再导出。
 
-**当前交付为源码运行包，不含预制 EXE。** `build_exe.bat` 用于在 Windows 构建便携目录，不是日常启动入口。分发时保留整个 `dist/PDFWorkspace` 和其中的第三方许可证目录。
+**GitHub 的 Code → Download ZIP 是源码，不是上方 Actions 的预制 EXE 下载。** `build_exe.bat` 用于在 Windows 构建便携目录，不是日常启动入口。分发时保留整个 `dist/PDFWorkspace` 和其中的第三方许可证目录。
 
 升级时可将新源码覆盖到旧程序目录，保留 `.venv`。v1.3 增加 Word、图像和水印依赖，首次升级会补装这些组件。
 
@@ -71,7 +82,7 @@ python app.py
 python -m unittest discover -s tests -v
 ```
 
-v1.4 便携构建源码：147 项自动化测试在 Linux 通过；原功能此前在 Linux 桌面完成真实拖放及部分导出检查。新冻结程序的搬迁/原生运行需等待 Windows CI。**Windows 实机、高 DPI 和 EXE 构建尚未验证**，不将 Linux 测试等同于 Windows 兼容性确认。
+v1.4：147 项自动化测试在 Linux 和 Windows CI 均通过；Windows 冻结 EXE 的双路径搬移自检通过。原功能此前在 Linux 桌面完成真实拖放及部分导出检查。Windows CI 自检不等同于人工鼠标拖放、高 DPI 或所有 Windows 用户设备的全面验收。
 
 ## 依赖许可
 

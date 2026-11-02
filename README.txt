@@ -1,9 +1,14 @@
-新版便携交付说明（1.4，待 Windows CI 验证）：
+新版便携交付说明（1.4，Windows CI 已验证）：
+147项Windows回归、单EXE构建及双路径搬移自检已通过。
+下载： https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673
+选择 Artifacts / PDFWorkspace-Windows-x64-portable，解压运行PDFWorkspace.exe。
+artifact当前保留至2026-11-30；可能需要GitHub登录，不是永久Release。
+未签名；Windows人工拖放手势、高DPI及所有用户系统未全面测试。
 普通用户只运行发布的单文件 PDFWorkspace.exe，不需要下文开发者源码运行步骤。
 关于单文件搬迁、临时解压、未签名和验证限制，先阅读 PORTABLE_BUILD.md。
 下文的 start.bat / build_exe.bat 为旧版源码/onedir开发流程，不是新版用户入口。
 
-PDF 工作台 1.3.1
+PDF 工作台 1.4
 ==============
 
 本地桌面 PDF 小工具。左侧选择功能，右侧操作；菜单可滚动。
@@ -11,7 +16,7 @@ PDF 工作台 1.3.1
 当前提供 14 个功能：分离、合并、调整顺序、删除页、旋转页、PDF 转 Word、
 提取文字、PDF 转图片、图片转 PDF、设置密码、移除密码、流压缩、水印、页码。
 
-一、运行与升级
+一、开发者源码运行与升级（普通EXE用户跳过）
 1. Windows x64，需要 Python 3.10+，安装时保留 Tcl/Tk，勾选 PATH 或保留 Launcher。
    官方下载：https://www.python.org/downloads/windows/
 2. 完整解压后双击 start.bat。会先检测已安装的 Python 版本/位数/Tcl-Tk。
@@ -23,8 +28,8 @@ PDF 工作台 1.3.1
 4. 不要在压缩包内运行，不要以管理员身份启动（可能阻止资源管理器拖放）。
 5. start.bat 是日常入口；build_exe.bat 是重新打包程序，不应每次启动都运行。
 
-本包是源码运行包，不含预制 Windows EXE。Windows 实机和 EXE 打包验证边界
-见 TEST_REPORT.txt；Linux 测试不能替代 Windows 实机测试。
+Code下载的源码包不含预制EXE；预制便携程序请用上方Actions下载。
+Windows CI测试与尚未验证的边界见 TEST_REPORT.txt。
 
 Python 3.9 安装报错的处理：
 - 日志中的 cp39-cp39-win_amd64 表示正在使用 Python 3.9。
@@ -102,6 +107,8 @@ PDF 转图片：选页码、PNG/JPEG 和 36–300 DPI，渲染成图片，不是
 - 输出完成后请抽查重要文档，尤其复杂版式、加密、签名、表单和扫描混合文档。
 
 六、构建 EXE 与许可证
+新版单文件构建请使用 build_portable.py，完整锁定环境与验证步骤见 PORTABLE_BUILD.md。
+以下 build_exe.bat 为保留的旧版 onedir 构建流程，不是单文件构建：
 Windows 安装 Python 后运行 build_exe.bat。
 成功后运行 dist\PDFWorkspace\PDFWorkspace.exe，分发必须保留整个目录。
 脚本会收集实际依赖许可证到 THIRD_PARTY_LICENSES，请勿删除。

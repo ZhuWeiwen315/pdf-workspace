@@ -6,8 +6,12 @@
 
 ## 当前状态
 
-此副本是新打包方案，Windows CI 尚未运行，不是已经验证的 Windows 成品。
-Linux 回归和脚本审查不等于 Windows DLL/GUI 验证。需要下列 CI 全部通过后才能交付 EXE。
+2026-10-31 的 [Windows CI 构建与验证](https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673) 已通过：Windows Server 2022 x64 / CPython 3.12.10，147 项回归、单文件 EXE 构建、两个搬移路径上的实际 EXE 自检全部成功。
+已验证 EXE 来自源码提交 `0296905f8c9e9c83505a448d14842dfa99e85f91`，SHA256：`8536ef3d54113bce54bb7b88100e8538f6212c446b68df4086f1c758dfa781c4`。
+双自检涵盖完整 UI 初始化、TkDnD 2.9.4 加载、14 项 PDF 功能、原件字节不变及内嵌许可证导出。
+**未签名；真实鼠标拖放手势、高 DPI、所有用户系统和从未安装 Python 的干净虚拟机未全面验证。** CI 移除了子进程 PATH 中的 Python 和 Python/Conda/Tcl 环境变量，但主机本身安装了 Python。
+
+下载入口见 README；Actions artifact 当前保留至 2026-11-30，未创建永久 Release。后续 main 中的说明更新不改变上述已验证二进制及其源码归属。
 
 ## 可复核构建流程
 
