@@ -1,8 +1,6 @@
 name: Windows portable EXE
 on:
   workflow_dispatch:
-  push:
-    branches: [portable-exe]
 permissions:
   contents: read
 jobs:

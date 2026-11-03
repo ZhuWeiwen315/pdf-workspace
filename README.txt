@@ -1,8 +1,10 @@
 新版便携交付说明（1.4，Windows CI 已验证）：
 147项Windows回归、单EXE构建及双路径搬移自检已通过。
-下载： https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673
-选择 Artifacts / PDFWorkspace-Windows-x64-portable，解压运行PDFWorkspace.exe。
-artifact当前保留至2026-11-30；可能需要GitHub登录，不是永久Release。
+普通用户直接下载： https://github.com/ZhuWeiwen315/pdf-workspace/raw/refs/heads/exe/PDFWorkspace.exe
+下载说明与SHA256核对： https://github.com/ZhuWeiwen315/pdf-workspace/tree/exe
+下载后双击PDFWorkspace.exe，无需解压。exe分支下载不受Actions artifact保留期限影响。
+构建清单/自检报告/日志： https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673
+该Actions artifact当前保留至2026-11-30；可能需要GitHub登录，不是永久Release。
 未签名；Windows人工拖放手势、高DPI及所有用户系统未全面测试。
 普通用户只运行发布的单文件 PDFWorkspace.exe，不需要下文开发者源码运行步骤。
 关于单文件搬迁、临时解压、未签名和验证限制，先阅读 PORTABLE_BUILD.md。
@@ -28,7 +30,7 @@ PDF 工作台 1.4
 4. 不要在压缩包内运行，不要以管理员身份启动（可能阻止资源管理器拖放）。
 5. start.bat 是日常入口；build_exe.bat 是重新打包程序，不应每次启动都运行。
 
-Code下载的源码包不含预制EXE；预制便携程序请用上方Actions下载。
+main分支的Code → Download ZIP是源码包，不含预制EXE；请用上方exe分支下载。
 Windows CI测试与尚未验证的边界见 TEST_REPORT.txt。
 
 Python 3.9 安装报错的处理：

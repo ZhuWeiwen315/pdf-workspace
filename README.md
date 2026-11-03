@@ -1,5 +1,9 @@
 # PDFWorkspace 1.4：单文件便携版
 
+**普通用户：[直接下载 PDFWorkspace.exe](https://github.com/ZhuWeiwen315/pdf-workspace/raw/refs/heads/exe/PDFWorkspace.exe) · [exe 分支下载说明与 SHA256](https://github.com/ZhuWeiwen315/pdf-workspace/tree/exe)**
+
+下载入口位于 `exe` 分支，不受 Actions artifact 保留期限影响；`main` 分支保留开发源码。程序未签名，请核对来源与 SHA256，不要关闭安全软件。
+
 新版交付目标是 `PDFWorkspace.exe` 单文件，内置运行库，用户不需要 Python/Conda/BAT。
 将已验证的新 EXE 关闭后移动到桌面或其他普通目录即可运行，不依赖原源码路径。
 旧版 onedir 中的 EXE 不能单独移动；不要把新旧打包方式混用。
@@ -25,11 +29,13 @@
 
 ## 快速开始：普通用户
 
-1. 打开[已验证构建](https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673)，在 **Artifacts** 下载 **PDFWorkspace-Windows-x64-portable**（下载可能需要登录 GitHub）。
-2. 解压 ZIP，双击 `PDFWorkspace.exe`；无需安装 Python、Conda 或运行 BAT。只移动这个 EXE 即可，先关闭程序再移动。
+1. [直接下载 PDFWorkspace.exe](https://github.com/ZhuWeiwen315/pdf-workspace/raw/refs/heads/exe/PDFWorkspace.exe)（约 42.8 MiB），或到 [exe 分支](https://github.com/ZhuWeiwen315/pdf-workspace/tree/exe) 点击文件后选择 **Download raw file**。不要将网页另存为 EXE。
+2. 双击下载好的 `PDFWorkspace.exe`；无需解压、安装 Python、Conda 或运行 BAT。只移动这个 EXE 即可，先关闭程序再移动。
 3. 从左侧选择功能，拖入文件或点击选择，检查参数再导出。
 
-此 Actions 下载有保留期限，目前到 **2026-11-30**；不是永久 Release。ZIP 内附构建清单、自检报告和日志，程序运行只需 EXE。未签名可能触发未知发布者提示，不要关闭安全软件。
+可用 PowerShell 的 `Get-FileHash .\PDFWorkspace.exe -Algorithm SHA256` 核对本页上方及 [exe 分支说明](https://github.com/ZhuWeiwen315/pdf-workspace/tree/exe) 的 SHA256。未签名可能触发未知发布者提示，不要关闭安全软件。
+
+维护者如需构建清单、自检报告和日志，可到[已验证构建](https://github.com/ZhuWeiwen315/pdf-workspace/actions/runs/41185582673)下载 **Artifacts → PDFWorkspace-Windows-x64-portable**（可能需要登录 GitHub）。该 ZIP 保留至 **2026-11-30**，不是永久 Release；普通用户请优先使用上方 `exe` 分支下载入口。
 
 ## 源码运行：开发者
 
@@ -39,7 +45,7 @@
 2. 双击 `start.bat`。启动器先检查 Python 3.10+ x64 / Tcl-Tk，再安装依赖；首次需要联网，依赖齐全后不再安装。旧的不兼容 `.venv` 保留不动。
 3. 从左侧选择功能，拖入文件或点击选择，检查参数再导出。
 
-**GitHub 的 Code → Download ZIP 是源码，不是上方 Actions 的预制 EXE 下载。** `build_exe.bat` 用于在 Windows 构建便携目录，不是日常启动入口。分发时保留整个 `dist/PDFWorkspace` 和其中的第三方许可证目录。
+**在 `main` 分支使用 Code → Download ZIP 得到的是源码，不含预制 EXE。** 新版单文件构建使用 `build_portable.py`，步骤见 [PORTABLE_BUILD.md](PORTABLE_BUILD.md)。`build_exe.bat` 仅保留为**旧版 onedir 目录构建**，不是新版单文件构建或日常启动入口；旧版分发时必须保留整个 `dist/PDFWorkspace` 和其中的第三方许可证目录。
 
 升级时可将新源码覆盖到旧程序目录，保留 `.venv`。v1.3 增加 Word、图像和水印依赖，首次升级会补装这些组件。
 
@@ -81,6 +87,8 @@ python -m pip install -r requirements.txt
 python app.py
 python -m unittest discover -s tests -v
 ```
+
+`Regression tests` 工作流在推送 `main` 和提交面向 `main` 的 PR 时自动运行 Windows 回归测试及依赖一致性检查，只测试源码，不构建或发布 EXE。耗时较长的 `Windows portable EXE` 工作流仅手动触发，用于构建和验证单文件产物。详见 [构建与 CI 说明](PORTABLE_BUILD.md)。
 
 v1.4：147 项自动化测试在 Linux 和 Windows CI 均通过；Windows 冻结 EXE 的双路径搬移自检通过。原功能此前在 Linux 桌面完成真实拖放及部分导出检查。Windows CI 自检不等同于人工鼠标拖放、高 DPI 或所有 Windows 用户设备的全面验收。
 

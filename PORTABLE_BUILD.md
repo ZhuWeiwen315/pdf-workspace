@@ -11,7 +11,7 @@
 双自检涵盖完整 UI 初始化、TkDnD 2.9.4 加载、14 项 PDF 功能、原件字节不变及内嵌许可证导出。
 **未签名；真实鼠标拖放手势、高 DPI、所有用户系统和从未安装 Python 的干净虚拟机未全面验证。** CI 移除了子进程 PATH 中的 Python 和 Python/Conda/Tcl 环境变量，但主机本身安装了 Python。
 
-下载入口见 README；Actions artifact 当前保留至 2026-11-30，未创建永久 Release。后续 main 中的说明更新不改变上述已验证二进制及其源码归属。
+普通用户可[直接下载 EXE](https://github.com/ZhuWeiwen315/pdf-workspace/raw/refs/heads/exe/PDFWorkspace.exe)，或查看 [exe 分支说明与校验值](https://github.com/ZhuWeiwen315/pdf-workspace/tree/exe)。该分支下载不受 Actions artifact 保留期限影响。构建清单、报告和日志仍可从上述 Actions artifact 获取，保留至 2026-11-30；未创建永久 Release。后续 main 中的说明或 CI 更新不改变上述已验证二进制及其源码归属。
 
 ## 可复核构建流程
 
@@ -21,7 +21,9 @@
 - `build_portable.py` 明确拒绝非 Windows x64/指定 Python/Conda。构建 `--onefile --windowed --noupx`。
 - 保留标准 Tkinter hook，显式收集 TkDnD、PDFium及其原生库、DOCX模板和 ReportLab。
 - 先收集第三方许可与 Python/Tcl/Tk notice，再嵌入单EXE。GUI“关于→导出第三方许可证”可以随时查看；也可运行 `PDFWorkspace.exe --export-licenses NEW_DIRECTORY`。不能覆盖已有目录。
-- 构建输出含源码 commit、依赖清单、锁文件和EXE SHA256。固定输入有助重复构建/审计，但 runner 镜像更新、打包时间信息意味着**不承诺位级完全一致的 EXE**。
+- 构建输出含 `environment.txt`（实际安装依赖）、构建日志，以及 `build-manifest.json`：记录 Python/平台、`commit`、EXE 的 `sha256`、锁文件的 `lock_sha256` 和 `code_signed: false`。**输出不复制锁文件本身**；应从对应源码提交获取 `requirements-windows-build.lock` 并核对哈希。
+- `commit` 直接读取环境变量 `GITHUB_SHA`。GitHub Actions 中它是该次构建的提交；本地未设置时写入 `local`，脚本不会自动运行 `git rev-parse`，也不检查工作区是否有未提交修改。本地构建需另行保存准确的源码版本和修改记录；不要把 `local` 当作可追溯的 commit。
+- 固定输入有助重复构建/审计，但 runner 镜像更新、打包时间信息意味着**不承诺位级完全一致的 EXE**。
 
 开发者可在相同 Windows CPython 环境执行：
 
@@ -45,12 +47,13 @@ python verify_portable.py portable-dist/PDFWorkspace.exe portable-dist/reports
 **TkDnD 加载不代表真实鼠标拖放手势已经测试；Windows人工拖放和用户系统验收仍须单独进行。**
 CI 主机有Python，但测试EXE的路径被清理；这不是物理“从未安装Python”的干净虚拟机。
 
-## GitHub 权限与发布
+## 自动回归、手动构建与发布
 
-仅需要现有仓库的 workflow 写入/触发权限和启用 Actions；工作流本身只有 `contents: read`，
-不需要用户创建 PAT、提供密码或新增长期密钥。先在 `portable-exe` 分支审查，推送才会触发。
-成功产物是 Actions artifact，不自动创建 Release、不改主分支、不自动发布签名文件。
-后续公开 Release 应由维护者确认验证结果后发布；artifact 有保留期限。
+- `.github/workflows/regression.yml`（`Regression tests`）在推送 `main`、提交/更新面向 `main` 的 PR 或手动触发时运行。使用 Windows Server 2022 / CPython 3.12.10 x64，安装同一份带哈希的锁定依赖，执行 `pip check` 和完整回归；同一分支/PR 的新提交取消尚未结束的旧测试。**不执行 PyInstaller、不生成或上传二进制、不修改任何分支**。
+- `.github/workflows/windows-portable.yml`（`Windows portable EXE`）仅保留 `workflow_dispatch`。维护者在 Actions 中选择该工作流和要验证的分支后手动运行；普通 push/PR 不会触发耗时的完整打包，也不再依赖旧的 `portable-exe` 分支。
+- 两个工作流都只有 `contents: read`，checkout 不持久保存凭据，不需要用户创建 PAT、提供密码或新增长期密钥。仓库须启用 Actions，提交工作流或手动触发需相应的仓库权限。
+- 手动构建的成功产物是 Actions artifact，保留 30 天；失败诊断保留 7 天。它不会自动创建 Release、更新 `exe`/`main` 分支或发布签名文件。
+- 更新 `exe` 下载或创建 Release 是单独的维护者发布步骤，应先确认实际 EXE 的验证结果和 SHA256。
 
 ## 边界与安全
 
